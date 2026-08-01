@@ -2,10 +2,9 @@
 可获取整个年级的主观题答案
 
 ## 依赖安装
-***
-pip install playwright requests
-playwright install chromium
-***
+
+    pip install playwright requests
+    playwright install chromium
 
 ## 登录获取token
 <img width="717" height="476" alt="{6723EC6E-7723-4A71-8FBE-65361F094BFE}" src="https://github.com/user-attachments/assets/a7117f4b-1daf-445e-93f7-e802f222dcb8" />
