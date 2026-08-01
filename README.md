@@ -4,6 +4,7 @@
 ## 依赖安装
 
     pip install playwright requests
+    
     playwright install chromium
 
 ## 登录获取token
