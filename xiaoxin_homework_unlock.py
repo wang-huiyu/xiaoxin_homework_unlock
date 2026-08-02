@@ -2,7 +2,6 @@ import urllib.parse
 import re
 import requests
 from playwright.sync_api import sync_playwright
-
 # 浏览器登录获取pc_token + 导出登录后的Cookie用于请求
 def get_pc_token():
     with sync_playwright() as p:
@@ -25,7 +24,6 @@ def get_pc_token():
         for ck in cookies:
             cookie_dict[ck["name"]] = ck["value"]
         return pc_token, cookie_dict
-
 # 获取对应sid下的作业列表
 def fetch_task_data(token, sid, cookie_dict):
     headers = {
@@ -54,7 +52,6 @@ def fetch_task_data(token, sid, cookie_dict):
     except ValueError:
         print(f"sid={sid} 返回数据解析失败，非标准JSON格式")
         return None
-
 # 请求排名接口【核心修复：Cookie、正确字段名、兼容state=ok】
 def fetch_rank_info(taskId, token, rank_type, cookie_dict):
     headers = {
@@ -68,7 +65,6 @@ def fetch_rank_info(taskId, token, rank_type, cookie_dict):
     else:
         api_url = base + "getGradeRanks"
         print("\n【年级排名接口】")
-
     params = {
         "page": 1,
         "limit": 99999999,
@@ -83,7 +79,6 @@ def fetch_rank_info(taskId, token, rank_type, cookie_dict):
         data = resp.json()
         # 打印原始JSON用于调试，可注释
         # print("原始接口返回：", data)
-
         # 兼容接口state=ok的成功标识，不再判断code
         if data.get("state") == "over":
             print(f"账号拦截提示：{data.get('msg')}，请重新登录！")
@@ -91,27 +86,26 @@ def fetch_rank_info(taskId, token, rank_type, cookie_dict):
         if data.get("state") != "ok":
             print(f"接口请求失败，state：{data.get('state')}，msg：{data.get('msg','无')}")
             return
-
         rank_list = data.get("data", [])
         if not rank_list:
             print("该作业暂无任何排名数据！")
             return
-        # 加宽列宽，对齐输出
-        print("\n{:<15} {:<20} {:<20}".format("userId", "realName", "correctRealName"))
-        print("-" * 60)
+        # 加宽列宽，对齐输出，末尾新增allScore字段
+        print("\n{:<15} {:<20} {:<20} {:<10}".format("userId", "realName", "correctRealName", "allScore"))
+        print("-" * 70)
         for item in rank_list:
             # 严格匹配浏览器返回的字段名：userId / realName / correctRealName
             uid = str(item.get("userId", ""))
             rn = str(item.get("realName", ""))
             crn = str(item.get("correctRealName", ""))
-            print("{:<15} {:<20} {:<20}".format(uid, rn, crn))
+            score = str(item.get("allScore", ""))
+            print("{:<15} {:<20} {:<20} {:<10}".format(uid, rn, crn, score))
     except requests.exceptions.RequestException as e:
         print(f"排名接口网络请求失败：{e}")
     except ValueError:
         print("排名接口返回数据不是标准JSON，解析失败")
     except Exception as err:
         print(f"排名接口未知异常：{err}")
-
 # 请求作业详情接口，提取所有30001域名jpg/jpeg图片链接
 def extract_jpgjpeg_image_links(task_id, user_id, token, cookie_dict):
     headers = {
@@ -135,12 +129,10 @@ def extract_jpgjpeg_image_links(task_id, user_id, token, cookie_dict):
     except ValueError:
         print("作业详情返回数据JSON解析失败")
         return []
-
     # 修复正则：同时匹配 zuoye.xinkaoyun.com 和 zuoyenew.xinkaoyun.com 图片域名
     img_reg = re.compile(r'https://zuoye(?:new)?\.xinkaoyun\.com:30001/\S*?\.jpe?g', re.IGNORECASE)
     all_content = str(data)
     img_list = img_reg.findall(all_content)
-
     # 方案2：单独遍历images数组兜底提取
     try:
         for item in data.get("data", []):
@@ -150,20 +142,18 @@ def extract_jpgjpeg_image_links(task_id, user_id, token, cookie_dict):
                     img_list.append(img_url)
     except Exception:
         pass
-
     # 去重
     unique_img = list(dict.fromkeys(img_list))
     return unique_img
-
 def main():
     print("=" * 60)
-    print("小鑫作业全年级主观题提取工具v3.9【Powered By Wang Huiyu】")
-    print("NEW:新增jpeg图片支持（苹果设备默认图片格式）")
+    print("小鑫作业全年级主观题提取工具v4.0【Powered By Wang Huiyu】")
+    print("NEW:新增分数显示")
+    print("Github:https://github.com/wang-huiyu/xiaoxin_homework_unlock")
     print("=" * 60)
     # sid与学科对应关系
     subject_map = {1: "语文", 2: "数学", 3: "英语", 4: "历史", 6: "政治", 9: "物理", 10: "化学"}
     sid_arr = [1, 2, 3, 4, 6, 9, 10]
-
     # 1. 登录获取token + 登录Cookie
     print("\n启动浏览器登录页面，请手动登录账号...")
     token, cookie_dict = get_pc_token()
@@ -171,7 +161,6 @@ def main():
         print("错误：未读取pc_开头token，程序终止")
         return
     print(f"\n✅ 已获取token：{token}")
-
     # 2. 遍历全部sid输出作业清单
     print("\n========================================")
     print("正在查阅全部学科，生成taskId对照表")
@@ -195,7 +184,6 @@ def main():
             tid = item.get("taskId")
             task_name = item.get("taskName", item.get("title", "无作业名称"))
             print(f"  序号{idx} | taskId={tid} | 作业名：{task_name}")
-
     # 循环多次查询图片链接，不自动关闭程序
     while True:
         # 第一步输入taskId
@@ -207,17 +195,14 @@ def main():
                 print("程序退出")
                 return
             continue
-
         # 第二步选择C班级排名 / G年级排名
         rank_choice = input("请选择排名类型 按C:班级排名 / 按G:年级排名：").strip().upper()
         if rank_choice in ("C", "G"):
             fetch_rank_info(task_id, token, rank_choice, cookie_dict)
         else:
             print("输入无效，跳过排名查询")
-
         # 第三步输入userId
         user_id = input("\n请输入userId：").strip()
-
         # 参数校验
         if not user_id or not token:
             print("参数缺失，本次查询跳过")
@@ -229,7 +214,6 @@ def main():
         if not token.startswith("pc_"):
             print("token格式错误，程序退出")
             return
-
         # 获取并打印所有图片链接
         jpgjpeg_links = extract_jpgjpeg_image_links(task_id, user_id, token, cookie_dict)
         print("\n########## 匹配到的JPG/JPEG图片链接 ##########")
@@ -238,13 +222,11 @@ def main():
         else:
             for link in jpgjpeg_links:
                 print(link)
-        print("#########################################")
-
+        print("##############################################")
         # 选择是否继续
         select = input("\n是否查询其他task的图片与排名？输入y继续，N退出：").strip().upper()
         if select != "Y":
             print("查询结束，程序关闭")
             return
-
 if __name__ == "__main__":
     main()
