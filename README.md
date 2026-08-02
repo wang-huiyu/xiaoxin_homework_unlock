@@ -1,4 +1,5 @@
-# 小鑫作业全年级主观题提取工具v3.8 【Powered By Wang Huiyu】
+# 小鑫作业全年级主观题提取工具v3.9 【Powered By Wang Huiyu】
+# NEW:新增对苹果设备上传图片的支持
 可获取整个年级的主观题答案
 
 ## 依赖安装
