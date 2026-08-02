@@ -94,7 +94,7 @@ def fetch_rank_info(taskId, token, rank_type, cookie_dict):
 
         rank_list = data.get("data", [])
         if not rank_list:
-            print("该任务暂无任何排名数据！")
+            print("该作业暂无任何排名数据！")
             return
         # 加宽列宽，对齐输出
         print("\n{:<15} {:<20} {:<20}".format("userId", "realName", "correctRealName"))
@@ -112,8 +112,8 @@ def fetch_rank_info(taskId, token, rank_type, cookie_dict):
     except Exception as err:
         print(f"排名接口未知异常：{err}")
 
-# 请求作业详情接口，提取所有30001域名jpg图片链接
-def extract_jpg_image_links(task_id, user_id, token, cookie_dict):
+# 请求作业详情接口，提取所有30001域名jpg/jpeg图片链接
+def extract_jpgjpeg_image_links(task_id, user_id, token, cookie_dict):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
         "Referer": "https://zuoye.xinkaoyun.com/"
@@ -137,7 +137,7 @@ def extract_jpg_image_links(task_id, user_id, token, cookie_dict):
         return []
 
     # 修复正则：同时匹配 zuoye.xinkaoyun.com 和 zuoyenew.xinkaoyun.com 图片域名
-    img_reg = re.compile(r'https://zuoye(?:new)?\.xinkaoyun\.com:30001/\S*?\.jpg', re.IGNORECASE)
+    img_reg = re.compile(r'https://zuoye(?:new)?\.xinkaoyun\.com:30001/\S*?\.jpe?g', re.IGNORECASE)
     all_content = str(data)
     img_list = img_reg.findall(all_content)
 
@@ -146,7 +146,7 @@ def extract_jpg_image_links(task_id, user_id, token, cookie_dict):
         for item in data.get("data", []):
             img_arr = item.get("images", [])
             for img_url in img_arr:
-                if img_url.endswith(".jpg") and ".xinkaoyun.com:30001" in img_url:
+                if img_url.endswith(".jpg/.jpeg") and ".xinkaoyun.com:30001" in img_url:
                     img_list.append(img_url)
     except Exception:
         pass
@@ -157,8 +157,8 @@ def extract_jpg_image_links(task_id, user_id, token, cookie_dict):
 
 def main():
     print("=" * 60)
-    print("小鑫作业全年级主观题提取工具v3.8【Powered By Wang Huiyu】")
-    print("登录→输出全学科task清单→输入taskId→选择C/G查看排名→输入userId→提取jpg图片链接")
+    print("小鑫作业全年级主观题提取工具v3.9【Powered By Wang Huiyu】")
+    print("NEW:新增jpeg图片支持（苹果设备默认图片格式）")
     print("=" * 60)
     # sid与学科对应关系
     subject_map = {1: "语文", 2: "数学", 3: "英语", 4: "历史", 6: "政治", 9: "物理", 10: "化学"}
@@ -174,7 +174,7 @@ def main():
 
     # 2. 遍历全部sid输出作业清单
     print("\n========================================")
-    print("正在遍历全部学科，生成taskId对照表")
+    print("正在查阅全部学科，生成taskId对照表")
     print("========================================")
     for sid in sid_arr:
         subject = subject_map[sid]
@@ -188,9 +188,9 @@ def main():
             continue
         task_list = task_data.get("data", [])
         if len(task_list) == 0:
-            print(f"sid{sid}：暂无作业任务")
+            print(f"sid{sid}：暂无作业")
             continue
-        print(f"sid{sid}【{subject}】任务清单：")
+        print(f"sid{sid}【{subject}】作业清单：")
         for idx, item in enumerate(task_list, start=1):
             tid = item.get("taskId")
             task_name = item.get("taskName", item.get("title", "无作业名称"))
@@ -202,14 +202,14 @@ def main():
         task_id = input("\n请输入需要操作的taskId：").strip()
         if not task_id:
             print("taskId不能为空，本次跳过")
-            opt = input("是否继续查询其他任务(y/N)：").strip().upper()
+            opt = input("是否继续查询其他作业(y/N)：").strip().upper()
             if opt != "Y":
                 print("程序退出")
                 return
             continue
 
         # 第二步选择C班级排名 / G年级排名
-        rank_choice = input("请选择排名类型 按C=ClassRanks班级排名 / 按G=GradeRanks年级排名：").strip().upper()
+        rank_choice = input("请选择排名类型 按C:班级排名 / 按G:年级排名：").strip().upper()
         if rank_choice in ("C", "G"):
             fetch_rank_info(task_id, token, rank_choice, cookie_dict)
         else:
@@ -221,7 +221,7 @@ def main():
         # 参数校验
         if not user_id or not token:
             print("参数缺失，本次查询跳过")
-            opt = input("是否继续查询其他任务(y/N)：").strip().upper()
+            opt = input("是否继续查询其他作业(y/N)：").strip().upper()
             if opt != "Y":
                 print("程序退出")
                 return
@@ -230,13 +230,13 @@ def main():
             print("token格式错误，程序退出")
             return
 
-        # 获取并打印所有jpg图片链接
-        jpg_links = extract_jpg_image_links(task_id, user_id, token, cookie_dict)
-        print("\n########## 匹配到的JPG图片链接 ##########")
-        if len(jpg_links) == 0:
-            print("无符合域名要求的.jpg图片链接")
+        # 获取并打印所有图片链接
+        jpgjpeg_links = extract_jpgjpeg_image_links(task_id, user_id, token, cookie_dict)
+        print("\n########## 匹配到的JPG/JPEG图片链接 ##########")
+        if len(jpgjpeg_links) == 0:
+            print("无符合域名要求的.jpg/.jpeg图片链接")
         else:
-            for link in jpg_links:
+            for link in jpgjpeg_links:
                 print(link)
         print("#########################################")
 
